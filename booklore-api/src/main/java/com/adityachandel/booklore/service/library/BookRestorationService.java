@@ -10,7 +10,6 @@ import com.adityachandel.booklore.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Path;
@@ -28,7 +27,7 @@ public class BookRestorationService {
     private final BookMapper bookMapper;
     private final NotificationService notificationService;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional  // Changed from REQUIRES_NEW for SQLite compatibility
     public void restoreDeletedBooks(List<LibraryFile> libraryFiles) {
         if (libraryFiles.isEmpty()) return;
 

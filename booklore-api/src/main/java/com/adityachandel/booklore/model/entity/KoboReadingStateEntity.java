@@ -30,13 +30,13 @@ public class KoboReadingStateEntity {
     @Column(name = "priority_timestamp")
     private String priorityTimestamp;
 
-    @Column(name = "current_bookmark_json", columnDefinition = "json")
+    @Column(name = "current_bookmark_json", columnDefinition = "TEXT")
     private String currentBookmarkJson;
 
-    @Column(name = "statistics_json", columnDefinition = "json")
+    @Column(name = "statistics_json", columnDefinition = "TEXT")
     private String statisticsJson;
 
-    @Column(name = "status_info_json", columnDefinition = "json")
+    @Column(name = "status_info_json", columnDefinition = "TEXT")
     private String statusInfoJson;
 
     @Column(name = "last_modified_string")

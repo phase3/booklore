@@ -10,7 +10,6 @@ import com.adityachandel.booklore.repository.ShelfRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -28,7 +27,7 @@ public class KoboAutoShelfService {
     private final BookRepository bookRepository;
     private final KoboCompatibilityService koboCompatibilityService;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional  // Changed from REQUIRES_NEW for SQLite compatibility
     public void autoAddBookToKoboShelves(Long bookId) {
         if (bookId == null) {
             log.warn("Book ID is null for auto-add to Kobo shelf");

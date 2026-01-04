@@ -67,6 +67,14 @@ public enum TaskType {
             true,
             "Refresh Metadata",
             "Updates metadata information for your selected books."
+    ),
+    INDEX_LIBRARY(
+            false,
+            true,
+            false,
+            false,
+            "Index Library for Full-Text Search",
+            "Extracts text content from PDFs and EPUBs to enable full-text search within the library."
     );
 
     @Getter

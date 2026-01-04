@@ -25,7 +25,7 @@ import com.adityachandel.booklore.task.options.RescanLibraryContext;
 import com.adityachandel.booklore.util.FileService;
 import com.adityachandel.booklore.util.SecurityContextVirtualThread;
 import jakarta.annotation.PostConstruct;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.InvalidDataAccessApiUsageException;

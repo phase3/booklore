@@ -15,7 +15,6 @@ import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -38,7 +37,7 @@ public class BookDeletionService {
     @PersistenceContext
     private final EntityManager entityManager;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional  // Changed from REQUIRES_NEW for SQLite compatibility
     public void deleteRemovedAdditionalFiles(List<Long> additionalFileIds) {
         if (additionalFileIds.isEmpty()) {
             return;
@@ -52,7 +51,7 @@ public class BookDeletionService {
         log.info("Deleted {} additional files from database", additionalFileIds.size());
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional  // Changed from REQUIRES_NEW for SQLite compatibility
     public void processDeletedLibraryFiles(List<Long> deletedBookIds, List<LibraryFile> libraryFiles) {
         if (deletedBookIds.isEmpty()) {
             return;
@@ -75,7 +74,7 @@ public class BookDeletionService {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional  // Changed from REQUIRES_NEW for SQLite compatibility
     public void deleteRemovedBooks(List<Long> bookIds) {
         List<BookEntity> books = bookRepository.findAllById(bookIds);
         for (BookEntity book : books) {

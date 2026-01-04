@@ -3,7 +3,7 @@ package com.adityachandel.booklore.repository;
 import com.adityachandel.booklore.model.entity.BookEntity;
 import com.adityachandel.booklore.model.entity.LibraryPathEntity;
 import com.adityachandel.booklore.model.enums.BookFileType;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
@@ -77,7 +77,7 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
     @Query(value = """
                 SELECT DISTINCT b.* FROM book b
                 LEFT JOIN book_metadata m ON b.id = m.book_id
-                WHERE (b.deleted IS NULL OR b.deleted = false)
+                WHERE (b.deleted IS NULL OR b.deleted = 0)
                 ORDER BY b.id
                 LIMIT :limit OFFSET :offset
             """, nativeQuery = true)

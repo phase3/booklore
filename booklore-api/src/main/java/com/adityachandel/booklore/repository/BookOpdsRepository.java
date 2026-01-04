@@ -109,10 +109,10 @@ public interface BookOpdsRepository extends JpaRepository<BookEntity, Long>, Jpa
     // RANDOM BOOKS - "Surprise Me" Feed
     // ============================================
 
-    @Query(value = "SELECT b.id FROM BookEntity b WHERE (b.deleted IS NULL OR b.deleted = false) ORDER BY function('RAND')", nativeQuery = false)
+    @Query(value = "SELECT id FROM book WHERE (deleted IS NULL OR deleted = 0) ORDER BY RANDOM()", nativeQuery = true)
     List<Long> findRandomBookIds();
 
-    @Query(value = "SELECT b.id FROM BookEntity b WHERE b.library.id IN :libraryIds AND (b.deleted IS NULL OR b.deleted = false) ORDER BY function('RAND')", nativeQuery = false)
+    @Query(value = "SELECT id FROM book WHERE library_id IN :libraryIds AND (deleted IS NULL OR deleted = 0) ORDER BY RANDOM()", nativeQuery = true)
     List<Long> findRandomBookIdsByLibraryIds(@Param("libraryIds") Collection<Long> libraryIds);
 
     // ============================================

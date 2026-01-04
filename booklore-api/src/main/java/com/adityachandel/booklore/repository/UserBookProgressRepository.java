@@ -43,23 +43,21 @@ public interface UserBookProgressRepository extends JpaRepository<UserBookProgre
             @Param("snapshotId") String snapshotId
     );
 
-    @Query("""
+    @Query(value = """
             SELECT
-                YEAR(COALESCE(ubp.dateFinished, ubp.readStatusModifiedTime, ubp.lastReadTime)) as year,
-                MONTH(COALESCE(ubp.dateFinished, ubp.readStatusModifiedTime, ubp.lastReadTime)) as month,
-                ubp.readStatus as readStatus,
-                COUNT(ubp) as bookCount
-            FROM UserBookProgressEntity ubp
-            WHERE ubp.user.id = :userId
-            AND ubp.readStatus IS NOT NULL
-            AND ubp.readStatus NOT IN (com.adityachandel.booklore.model.enums.ReadStatus.UNSET, com.adityachandel.booklore.model.enums.ReadStatus.UNREAD)
-            AND COALESCE(ubp.dateFinished, ubp.readStatusModifiedTime, ubp.lastReadTime) IS NOT NULL
-            AND YEAR(COALESCE(ubp.dateFinished, ubp.readStatusModifiedTime, ubp.lastReadTime)) = :year
-            GROUP BY YEAR(COALESCE(ubp.dateFinished, ubp.readStatusModifiedTime, ubp.lastReadTime)),
-                     MONTH(COALESCE(ubp.dateFinished, ubp.readStatusModifiedTime, ubp.lastReadTime)),
-                     ubp.readStatus
+                CAST(strftime('%Y', datetime(COALESCE(date_finished, read_status_modified_time, last_read_time) / 1000, 'unixepoch')) AS INTEGER) as year,
+                CAST(strftime('%m', datetime(COALESCE(date_finished, read_status_modified_time, last_read_time) / 1000, 'unixepoch')) AS INTEGER) as month,
+                read_status as readStatus,
+                COUNT(*) as bookCount
+            FROM user_book_progress
+            WHERE user_id = :userId
+            AND read_status IS NOT NULL
+            AND read_status NOT IN ('UNSET', 'UNREAD')
+            AND COALESCE(date_finished, read_status_modified_time, last_read_time) IS NOT NULL
+            AND CAST(strftime('%Y', datetime(COALESCE(date_finished, read_status_modified_time, last_read_time) / 1000, 'unixepoch')) AS INTEGER) = :year
+            GROUP BY year, month, read_status
             ORDER BY year DESC, month DESC
-            """)
+            """, nativeQuery = true)
     List<CompletionTimelineDto> findCompletionTimelineByUser(@Param("userId") Long userId, @Param("year") int year);
 
     @Modifying

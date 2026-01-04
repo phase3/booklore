@@ -7,9 +7,15 @@ import { ActivatedRouteSnapshot, DetachedRouteHandle, RouteReuseStrategy } from 
 export class CustomReuseStrategy implements RouteReuseStrategy {
   private storedRoutes = new Map<string, DetachedRouteHandle>();
 
-  // Only detach the route if it's for the book details page
+  // Routes that should be persisted when navigating away
+  private readonly persistentRoutes = new Set([
+    'book/:id',
+    'search'
+  ]);
+
+  // Detach the route if it's in our persistent routes list
   shouldDetach(route: ActivatedRouteSnapshot): boolean {
-    return route.routeConfig?.path === 'book/:id'; // Match the path of the route you want to reuse
+    return this.persistentRoutes.has(route.routeConfig?.path || '');
   }
 
   // Store the route component instance when detaching

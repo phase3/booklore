@@ -1,6 +1,7 @@
 package com.adityachandel.booklore.model.dto.request;
 
 import com.adityachandel.booklore.model.enums.TaskType;
+import com.adityachandel.booklore.task.options.LibraryIndexOptions;
 import com.adityachandel.booklore.task.options.LibraryRescanOptions;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -24,6 +25,7 @@ public class TaskCreateRequest {
     @JsonSubTypes({
             @JsonSubTypes.Type(value = LibraryRescanOptions.class, name = "REFRESH_LIBRARY_METADATA"),
             @JsonSubTypes.Type(value = MetadataRefreshRequest.class, name = "REFRESH_METADATA_MANUAL"),
+            @JsonSubTypes.Type(value = LibraryIndexOptions.class, name = "INDEX_LIBRARY"),
     })
     private Object options;
 

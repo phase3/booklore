@@ -86,6 +86,11 @@ export class AppMenuComponent implements OnInit {
               icon: 'pi pi-fw pi-book',
               routerLink: ['/all-books'],
               bookCount$: of(bookState.books ? bookState.books.length : 0),
+            },
+            {
+              label: 'Search Inside Books',
+              icon: 'pi pi-fw pi-file-search',
+              routerLink: ['/search'],
             }
           ],
         },

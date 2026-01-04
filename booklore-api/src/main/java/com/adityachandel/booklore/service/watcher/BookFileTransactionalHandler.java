@@ -11,7 +11,7 @@ import com.adityachandel.booklore.repository.LibraryRepository;
 import com.adityachandel.booklore.service.NotificationService;
 import com.adityachandel.booklore.service.library.LibraryProcessingService;
 import com.adityachandel.booklore.util.FileUtils;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class BookFileTransactionalHandler {
     private final NotificationService notificationService;
     private final LibraryRepository libraryRepository;
 
-    @Transactional()
+    @Transactional
     public void handleNewBookFile(long libraryId, Path path) {
         LibraryEntity libraryEntity = libraryRepository.findById(libraryId).orElseThrow(() -> ApiError.LIBRARY_NOT_FOUND.createException(libraryId));
 

@@ -33,17 +33,17 @@ spring:
   application:
     name: booklore-api
   datasource:
-    url: ${DATABASE_URL:jdbc:mariadb://${DATABASE_HOST:${DB_HOST:mariadb}}:${DATABASE_PORT:3306}/${DATABASE_NAME:booklore}?createDatabaseIfNotExist=true}
-    username: ${DATABASE_USERNAME:root}
-    password: ${DATABASE_PASSWORD:${MYSQL_ROOT_PASSWORD}}
+    url: jdbc:sqlite:${app.path-config}/booklore.db?journal_mode=WAL&busy_timeout=60000&transaction_mode=IMMEDIATE
+    driver-class-name: org.sqlite.JDBC
     hikari:
-      max-lifetime: 580000         # 9.6 minutes (avoid DB-side connection cuts)
-      connection-test-query: SELECT 1
-      maximum-pool-size: 10        # Allows bursts
-      minimum-idle: 1              # Shrinks when idle
-      idle-timeout: 300000         # 5 minutes before idle connections are closed
+      maximum-pool-size: 10        # WAL mode allows concurrent readers
+      minimum-idle: 2
+      connection-timeout: 60000    # Wait up to 60s for connection
+      leak-detection-threshold: 120000  # Detect connection leaks after 2 min
   jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
+      ddl-auto: update             # Creates/updates schema automatically
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: false
@@ -53,9 +53,6 @@ spring:
           batch_size: 500
           order_inserts: true
           order_updates: true
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
 
 springdoc:
   swagger-ui:

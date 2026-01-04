@@ -1,0 +1,259 @@
+<div class="fulltext-search-container">
+  <!-- Header -->
+  <div class="search-header">
+    <h1 class="search-title">
+      <i class="pi pi-search mr-2"></i>
+      Search Inside Books
+    </h1>
+    <p class="search-subtitle">Find text within your indexed PDF and EPUB books</p>
+  </div>
+
+  <!-- Initial loading spinner -->
+  @if (initialLoading) {
+    <div class="flex justify-center items-center p-8">
+      <p-progressSpinner strokeWidth="4" />
+    </div>
+  } @else {
+    <!-- No indexed libraries warning -->
+    @if (!hasIndexedLibraries) {
+      <p-message severity="warn" styleClass="mb-4 w-full">
+        <span class="font-medium">No indexed libraries available.</span>
+        <span class="ml-2">Go to Settings → Task Manager to index a library for full-text search.</span>
+      </p-message>
+    } @else {
+      <!-- Search form -->
+      <div class="search-form">
+        <div class="search-input-group">
+          <p-iconfield class="search-iconfield">
+            <p-inputicon class="pi pi-search" />
+            <input
+              type="text"
+              pInputText
+              [(ngModel)]="searchQuery"
+              (keyup.enter)="onSearchSubmit()"
+              placeholder="Search text within books..."
+              class="search-input"
+            />
+          </p-iconfield>
+          
+          @if (searchQuery) {
+            <p-button
+              icon="pi pi-times"
+              (click)="clearSearch()"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              pTooltip="Clear search"
+            />
+          }
+          
+          <p-button
+            label="Search"
+            icon="pi pi-search"
+            (click)="onSearchSubmit()"
+            [disabled]="!searchQuery || searchQuery.length < 2"
+          />
+          
+          <p-button
+            [icon]="showSearchTips ? 'pi pi-chevron-up' : 'pi pi-question-circle'"
+            (click)="showSearchTips = !showSearchTips"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            pTooltip="Search tips"
+          />
+        </div>
+
+        <!-- Search tips panel -->
+        @if (showSearchTips) {
+          <div class="search-tips-panel">
+            <div class="tips-header">
+              <i class="pi pi-info-circle"></i>
+              <span>Search Syntax Guide</span>
+            </div>
+            <div class="tips-content">
+              <div class="tip-group">
+                <div class="tip-title">Boolean Operators</div>
+                <ul class="tip-list">
+                  <li><code>dragon AND fire</code> — both terms must appear</li>
+                  <li><code>dragon OR fire</code> — either term matches</li>
+                  <li><code>dragon NOT fire</code> — exclude a term</li>
+                  <li><code>dragon -fire</code> — shorthand for NOT</li>
+                </ul>
+              </div>
+              <div class="tip-group">
+                <div class="tip-title">Exact &amp; Proximity</div>
+                <ul class="tip-list">
+                  <li><code>"dark forest"</code> — exact phrase match</li>
+                  <li><code>"dark forest"~5</code> — words within 5 positions</li>
+                  <li><code>magic~</code> — fuzzy match (typo-tolerant)</li>
+                </ul>
+              </div>
+              <div class="tip-group">
+                <div class="tip-title">Wildcards &amp; Grouping</div>
+                <ul class="tip-list">
+                  <li><code>drag*</code> — matches dragon, drag, dragged</li>
+                  <li><code>d?g</code> — single character wildcard</li>
+                  <li><code>(fire OR ice) AND dragon</code> — group terms</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Library filter -->
+        <div class="library-filter">
+          <p-multiSelect
+            [options]="libraryOptions"
+            [(ngModel)]="selectedLibraryIds"
+            (ngModelChange)="onLibraryFilterChange()"
+            placeholder="All indexed libraries"
+            [showClear]="true"
+            display="chip"
+            class="library-select"
+          />
+        </div>
+      </div>
+
+      <!-- Results section -->
+      <div class="search-results">
+        @if (loading) {
+          <div class="flex justify-center items-center p-8">
+            <p-progressSpinner strokeWidth="4" />
+          </div>
+        } @else if (searchResponse) {
+          <!-- Results header -->
+          <div class="results-header">
+            <span class="results-count">
+              @if (searchResponse.totalHits > 0) {
+                Found <strong>{{ searchResponse.totalHits }}</strong> results in <strong>{{ groupedResults.length }}</strong> books for "<strong>{{ searchResponse.query }}</strong>"
+              } @else {
+                No results found for "<strong>{{ searchResponse.query }}</strong>"
+              }
+            </span>
+          </div>
+
+          <!-- Grouped Results list -->
+          @if (groupedResults.length > 0) {
+            <div class="results-list">
+              @for (group of groupedResults; track group.bookId) {
+                <div class="result-card">
+                  <!-- Book header (always clickable to go to book) -->
+                  <div class="result-book-header" (click)="navigateToBook(group.bookId)">
+                    <div class="result-cover">
+                      <img
+                        [src]="urlHelper.getThumbnailUrl1(group.bookId)"
+                        [alt]="group.title"
+                        class="cover-image"
+                        (error)="$any($event.target).src = 'assets/images/missing-cover.jpg'"
+                      />
+                    </div>
+                    
+                    <div class="result-book-info">
+                      <div class="result-header">
+                        <h3 class="result-title">{{ group.title }}</h3>
+                        <p-tag 
+                          [value]="getLibraryName(group.libraryId)" 
+                          severity="secondary"
+                          class="library-tag"
+                        />
+                      </div>
+                      
+                      @if (group.authors) {
+                        <p class="result-authors">by {{ group.authors }}</p>
+                      }
+                      
+                      <div class="result-meta">
+                        <span class="match-count">
+                          <i class="pi pi-file mr-1"></i>
+                          {{ group.chapters.length }} {{ group.chapters.length === 1 ? 'match' : 'matches' }}
+                        </span>
+                        <span class="relevance-score">
+                          <i class="pi pi-chart-line mr-1"></i>
+                          Best match: {{ (group.maxScore * 100).toFixed(0) }}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Chapters/Results accordion -->
+                  <div class="result-chapters">
+                    @if (hasChapterInfo(group)) {
+                      <!-- Book has chapter information -->
+                      <p-accordion [multiple]="true">
+                        @for (chapter of group.chapters; track $index) {
+                          <p-accordionpanel>
+                            <p-accordionheader>
+                              <div class="chapter-header" (click)="$event.stopPropagation()">
+                                <div class="chapter-info">
+                                  <i class="pi pi-bookmark chapter-icon"></i>
+                                  <span class="chapter-title">{{ chapter.chapterTitle || 'Section ' + (chapter.chapterIndex !== undefined ? chapter.chapterIndex + 1 : $index + 1) }}</span>
+                                </div>
+                                @if (chapter.chapterHref) {
+                                  <p-button
+                                    icon="pi pi-external-link"
+                                    label="Go to chapter"
+                                    [text]="true"
+                                    size="small"
+                                    (click)="navigateToChapter(group.bookId, chapter); $event.stopPropagation()"
+                                    class="goto-chapter-btn"
+                                  />
+                                }
+                              </div>
+                            </p-accordionheader>
+                            <p-accordioncontent>
+                              <div class="chapter-highlights">
+                                @for (highlight of chapter.highlights; track $index) {
+                                  <p class="highlight-snippet" [innerHTML]="highlight"></p>
+                                }
+                                @if (chapter.highlights.length === 0) {
+                                  <p class="no-highlights">No preview available</p>
+                                }
+                              </div>
+                            </p-accordioncontent>
+                          </p-accordionpanel>
+                        }
+                      </p-accordion>
+                    } @else {
+                      <!-- Book without chapter information - show highlights directly -->
+                      <div class="result-highlights-direct">
+                        @for (chapter of group.chapters; track $index) {
+                          @for (highlight of chapter.highlights; track $index) {
+                            <p class="highlight-snippet" [innerHTML]="highlight"></p>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Pagination -->
+            @if (searchResponse.totalPages > 1) {
+              <div class="pagination-container">
+                <p-paginator
+                  [rows]="pageSize"
+                  [totalRecords]="searchResponse.totalHits"
+                  [first]="page * pageSize"
+                  [rowsPerPageOptions]="[10, 20, 50]"
+                  (onPageChange)="onPageChange($event)"
+                />
+              </div>
+            }
+          }
+        } @else if (searchQuery && searchQuery.length < 2) {
+          <div class="search-hint">
+            <i class="pi pi-info-circle mr-2"></i>
+            Enter at least 2 characters to search
+          </div>
+        } @else {
+          <div class="search-hint">
+            <i class="pi pi-lightbulb mr-2"></i>
+            Enter a search term to find text within your books
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

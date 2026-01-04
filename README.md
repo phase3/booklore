@@ -208,30 +208,7 @@ Ensure you have [Docker](https://docs.docker.com/get-docker/) and [Docker Compos
 
 </details>
 
-### **Step 1️⃣: Create Environment Configuration**
-
-Create a `.env` file in your project directory:
-
-```ini
-# 🎯 BookLore Application Settings
-APP_USER_ID=0
-APP_GROUP_ID=0
-TZ=Etc/UTC
-BOOKLORE_PORT=6060
-
-# 🗄️ Database Connection (BookLore)
-DATABASE_URL=jdbc:mariadb://mariadb:3306/booklore
-DB_USER=booklore
-DB_PASSWORD=ChangeMe_BookLoreApp_2025!
-
-# 🔧 MariaDB Container Settings
-DB_USER_ID=1000
-DB_GROUP_ID=1000
-MYSQL_ROOT_PASSWORD=ChangeMe_MariaDBRoot_2025!
-MYSQL_DATABASE=booklore
-```
-
-### **Step 2️⃣: Create Docker Compose File**
+### **Step 1️⃣: Create Docker Compose File**
 
 Create a `docker-compose.yml` file:
 
@@ -243,58 +220,34 @@ services:
     # image: ghcr.io/booklore-app/booklore:latest
     container_name: booklore
     environment:
-      - USER_ID=${APP_USER_ID}
-      - GROUP_ID=${APP_GROUP_ID}
-      - TZ=${TZ}
-      - DATABASE_URL=${DATABASE_URL}
-      - DATABASE_USERNAME=${DB_USER}
-      - DATABASE_PASSWORD=${DB_PASSWORD}
-      - BOOKLORE_PORT=${BOOKLORE_PORT}
-    depends_on:
-      mariadb:
-        condition: service_healthy
+      - USER_ID=0              # Modify if the volume's ownership is not root
+      - GROUP_ID=0             # Modify if the volume's ownership is not root
+      - TZ=Etc/UTC
+      - BOOKLORE_PORT=6060     # Must match container port below
     ports:
-      - "${BOOKLORE_PORT}:${BOOKLORE_PORT}"
+      - "6060:6060"            # HostPort:ContainerPort (must match BOOKLORE_PORT)
     volumes:
-      - ./data:/app/data
-      - ./books:/books
-      - ./bookdrop:/bookdrop
+      - ./data:/app/data       # SQLite database, settings, metadata, cache
+      - ./books:/books         # Your book collection
+      - ./bookdrop:/bookdrop   # BookDrop auto-import folder
     healthcheck:
-      test: wget -q -O - http://localhost:${BOOKLORE_PORT}/api/v1/healthcheck
+      test: wget -q -O - http://localhost:6060/api/v1/healthcheck
       interval: 60s
       retries: 5
       start_period: 60s
       timeout: 10s
     restart: unless-stopped
-
-  mariadb:
-    image: lscr.io/linuxserver/mariadb:11.4.5
-    container_name: mariadb
-    environment:
-      - PUID=${DB_USER_ID}
-      - PGID=${DB_GROUP_ID}
-      - TZ=${TZ}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - ./mariadb/config:/config
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 ```
 
-### **Step 3️⃣: Launch BookLore**
+> **Note:** BookLore uses an embedded SQLite database stored in the `./data` directory. No external database setup required!
+
+### **Step 2️⃣: Launch BookLore**
 
 ```bash
 docker compose up -d
 ```
 
-### **Step 4️⃣: Access Your Library**
+### **Step 3️⃣: Access Your Library**
 
 Open your browser and navigate to:
 

@@ -22,6 +22,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -113,9 +115,13 @@ public class AuthenticationService {
         return loginUser(user.get());
     }
 
+    @Transactional
     public ResponseEntity<Map<String, String>> loginUser(BookLoreUserEntity user) {
         String accessToken = jwtUtils.generateAccessToken(user);
         String refreshToken = jwtUtils.generateRefreshToken(user);
+
+        // Delete any existing refresh token for this user (OneToOne constraint)
+        refreshTokenRepository.deleteByUser(user);
 
         RefreshTokenEntity refreshTokenEntity = RefreshTokenEntity.builder()
                 .user(user)
@@ -133,6 +139,7 @@ public class AuthenticationService {
         ));
     }
 
+    @Transactional
     public ResponseEntity<Map<String, String>> refreshToken(String token) {
         RefreshTokenEntity storedToken = refreshTokenRepository.findByToken(token).orElseThrow(() -> ApiError.INVALID_CREDENTIALS.createException("Refresh token not found"));
 
@@ -142,9 +149,8 @@ public class AuthenticationService {
 
         BookLoreUserEntity user = storedToken.getUser();
 
-        storedToken.setRevoked(true);
-        storedToken.setRevocationDate(Instant.now());
-        refreshTokenRepository.save(storedToken);
+        // Delete the old token (OneToOne constraint requires this before creating new)
+        refreshTokenRepository.delete(storedToken);
 
         String newRefreshToken = jwtUtils.generateRefreshToken(user);
         RefreshTokenEntity newRefreshTokenEntity = RefreshTokenEntity.builder()

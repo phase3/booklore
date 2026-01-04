@@ -62,9 +62,32 @@
             <p-divider></p-divider>
           </div>
         }
+        
+        <!-- Full-text search link -->
+        @if (hasIndexedLibraries && searchQuery.length >= 2) {
+          <div class="search-dropdown-item fulltext-search-link" (click)="searchInsideBooks()">
+            <div class="search-item-content">
+              <i class="pi pi-file-search fulltext-icon"></i>
+              <div class="fulltext-search-text">
+                <span class="fulltext-title">Search inside books</span>
+                <span class="fulltext-subtitle">Find "{{ searchQuery }}" in book content</span>
+              </div>
+            </div>
+          </div>
+        }
       } @else {
         <div class="search-dropdown-item no-results">
           <span>No results found</span>
+          @if (hasIndexedLibraries && searchQuery.length >= 2) {
+            <p-button
+              label="Search inside books"
+              icon="pi pi-file-search"
+              [text]="true"
+              size="small"
+              (click)="searchInsideBooks()"
+              class="mt-2"
+            />
+          }
         </div>
       }
     </div>

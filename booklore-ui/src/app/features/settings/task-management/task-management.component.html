@@ -70,6 +70,27 @@
                       </div>
                     </div>
                   }
+                  @if (!isTaskRunning(taskInfo.taskType) && taskInfo.taskType === TaskType.INDEX_LIBRARY) {
+                    <div class="task-options">
+                      <div class="option-group">
+                        <div class="option-row">
+                          <label class="option-label">Select Library to Index:</label>
+                          <p-select
+                            [options]="libraries"
+                            [(ngModel)]="selectedLibraryIdForIndex"
+                            size="small"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Select a library"
+                            class="library-select">
+                          </p-select>
+                        </div>
+                        <p class="option-description">
+                          Select the library you want to index for full-text search. Only PDF and EPUB books with text content will be indexed.
+                        </p>
+                      </div>
+                    </div>
+                  }
                 </div>
                 @if (!isTaskRunning(taskInfo.taskType) && isCronSupported(taskInfo.taskType) && getCronConfig(taskInfo.taskType)) {
                   <div class="cron-config-section compact">

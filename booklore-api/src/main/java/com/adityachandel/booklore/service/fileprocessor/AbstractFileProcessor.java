@@ -13,7 +13,6 @@ import com.adityachandel.booklore.service.file.FileFingerprint;
 import com.adityachandel.booklore.service.metadata.MetadataMatchService;
 import com.adityachandel.booklore.util.FileService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Path;
@@ -43,7 +42,7 @@ public abstract class AbstractFileProcessor implements BookFileProcessor {
         this.fileService = fileService;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional  // Changed from REQUIRES_NEW for SQLite compatibility
     @Override
     public FileProcessResult processFile(LibraryFile libraryFile) {
         Path path = libraryFile.getFullPath();

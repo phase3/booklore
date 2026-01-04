@@ -2,7 +2,7 @@ package com.adityachandel.booklore.service.migration;
 
 import com.adityachandel.booklore.model.entity.AppMigrationEntity;
 import com.adityachandel.booklore.repository.AppMigrationRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

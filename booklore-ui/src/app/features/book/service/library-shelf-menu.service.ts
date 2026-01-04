@@ -91,6 +91,27 @@ export class LibraryShelfMenuService {
             }
           },
           {
+            label: 'Re-index Library',
+            icon: 'pi pi-database',
+            command: () => {
+              this.confirmationService.confirm({
+                message: `This will rebuild the full-text search index for "${entity?.name}". This may take a while for large libraries. Continue?`,
+                header: 'Re-index Library',
+                rejectButtonProps: {
+                  label: 'Cancel',
+                  severity: 'secondary',
+                },
+                acceptButtonProps: {
+                  label: 'Start Indexing',
+                  severity: 'success',
+                },
+                accept: () => {
+                  this.taskHelperService.indexLibraryTask(entity?.id!).subscribe();
+                }
+              });
+            }
+          },
+          {
             separator: true
           },
           {

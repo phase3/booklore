@@ -129,6 +129,9 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
     this.routeSubscription = this.route.paramMap.subscribe((params) => {
       this.isLoading = true;
       const bookId = +params.get('bookId')!;
+      
+      // Check for chapter navigation from search results
+      const chapterHref = this.route.snapshot.queryParamMap.get('chapter');
 
       const myself$ = this.userService.getMyself();
       const epub$ = this.bookService.getBookByIdFromAPI(bookId, false);
@@ -169,7 +172,8 @@ export class EpubReaderComponent implements OnInit, OnDestroy {
             if (resolvedSpread != null) this.selectedSpread = resolvedSpread;
 
             this.initBook();
-            this.initRendition();
+            // If chapter href is provided, navigate to that chapter instead of saved position
+            this.initRendition(chapterHref || undefined);
           };
 
           fileReader.readAsArrayBuffer(epubData);

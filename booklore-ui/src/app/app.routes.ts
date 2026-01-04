@@ -25,6 +25,7 @@ import {BookdropGuard} from './core/security/guards/bookdrop.guard';
 import {LibraryStatsGuard} from './core/security/guards/library-stats.guard';
 import {UserStatsGuard} from './core/security/guards/user-stats.guard';
 import {EditMetadataGuard} from './core/security/guards/edit-metdata.guard';
+import {FulltextSearchComponent} from './features/fulltext-search/component/fulltext-search.component';
 
 export const routes: Routes = [
   {
@@ -56,6 +57,7 @@ export const routes: Routes = [
       {path: 'metadata-manager', component: MetadataManagerComponent, canActivate: [EditMetadataGuard]},
       {path: 'library-stats', component: StatsComponent, canActivate: [LibraryStatsGuard]},
       {path: 'reading-stats', component: UserStatsComponent, canActivate: [UserStatsGuard]},
+      {path: 'search', component: FulltextSearchComponent, canActivate: [AuthGuard]},
     ]
   },
   {

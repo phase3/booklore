@@ -3,7 +3,7 @@ import {MessageService} from 'primeng/api';
 import {MetadataRefreshRequest} from '../../metadata/model/request/metadata-refresh-request.model';
 import {catchError, map} from 'rxjs/operators';
 import {of} from 'rxjs';
-import {TaskCreateRequest, TaskService, TaskType} from './task.service';
+import {LibraryIndexOptions, TaskCreateRequest, TaskService, TaskType} from './task.service';
 
 @Injectable({
   providedIn: 'root'
@@ -40,6 +40,42 @@ export class TaskHelperService {
             summary: 'Metadata Update Failed',
             life: 5000,
             detail: 'An unexpected error occurred while scheduling the metadata update. Please try again later or contact support if the issue persists.'
+          });
+        }
+        return of({success: false});
+      })
+    );
+  }
+
+  indexLibraryTask(libraryId: number) {
+    const options: LibraryIndexOptions = { libraryId };
+    const request: TaskCreateRequest = {
+      taskType: TaskType.INDEX_LIBRARY,
+      options
+    };
+    return this.taskService.startTask(request).pipe(
+      map(() => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Library Indexing Scheduled',
+          detail: 'Full-text indexing for the library has been scheduled. This may take a while depending on the number of books.'
+        });
+        return {success: true};
+      }),
+      catchError((e) => {
+        if (e.status === 409) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Task Already Running',
+            life: 5000,
+            detail: 'A library indexing task is already in progress. Please wait for it to complete before starting another one.'
+          });
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Library Indexing Failed',
+            life: 5000,
+            detail: 'An unexpected error occurred while scheduling the library indexing. Please try again later.'
           });
         }
         return of({success: false});

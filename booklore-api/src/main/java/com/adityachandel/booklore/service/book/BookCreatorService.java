@@ -8,6 +8,7 @@ import com.adityachandel.booklore.service.file.FileFingerprint;
 import com.adityachandel.booklore.util.FileUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -54,8 +55,12 @@ public class BookCreatorService {
                 .addedOn(Instant.now())
                 .build();
 
+        // Set default title from filename (without extension) to satisfy NOT NULL constraint
+        String defaultTitle = FilenameUtils.getBaseName(libraryFile.getFileName());
+        
         BookMetadataEntity metadata = BookMetadataEntity.builder()
                 .book(bookEntity)
+                .title(defaultTitle)
                 .build();
         bookEntity.setMetadata(metadata);
 

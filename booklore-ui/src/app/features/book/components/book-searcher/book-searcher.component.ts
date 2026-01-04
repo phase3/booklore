@@ -13,6 +13,7 @@ import {Router} from '@angular/router';
 import {IconField} from 'primeng/iconfield';
 import {InputIcon} from 'primeng/inputicon';
 import {HeaderFilter} from '../book-browser/filters/HeaderFilter';
+import {FulltextSearchService} from '../../../fulltext-search/service/fulltext-search.service';
 
 @Component({
   selector: 'app-book-searcher',
@@ -35,10 +36,12 @@ export class BookSearcherComponent implements OnInit, OnDestroy {
   #searchSubject = new BehaviorSubject<string>('');
   #subscription!: Subscription;
   isSearchFocused = false;
+  hasIndexedLibraries = false;
 
   private bookService = inject(BookService);
   private router = inject(Router);
   protected urlHelper = inject(UrlHelperService);
+  private fulltextSearchService = inject(FulltextSearchService);
   private headerFilter = new HeaderFilter(this.#searchSubject.asObservable());
 
   ngOnInit(): void {
@@ -52,6 +55,12 @@ export class BookSearcherComponent implements OnInit, OnDestroy {
           ? (filteredState.books || []).slice(0, 50)
           : [];
       }
+    });
+
+    // Check if full-text search is available
+    this.fulltextSearchService.isFullTextSearchAvailable().subscribe({
+      next: (available) => this.hasIndexedLibraries = available,
+      error: () => this.hasIndexedLibraries = false
     });
   }
 
@@ -87,6 +96,15 @@ export class BookSearcherComponent implements OnInit, OnDestroy {
   clearSearch(): void {
     this.searchQuery = '';
     this.books = [];
+  }
+
+  searchInsideBooks(): void {
+    if (this.searchQuery.trim().length >= 2) {
+      this.router.navigate(['/search'], {
+        queryParams: {q: this.searchQuery.trim()}
+      });
+      this.clearSearch();
+    }
   }
 
   get isDropdownOpen(): boolean {

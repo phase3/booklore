@@ -124,6 +124,38 @@
     text-align: center;
     color: var(--text-secondary-color);
     font-style: italic;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &.fulltext-search-link {
+    background-color: var(--surface-ground);
+    border-top: 1px solid var(--border-color);
+
+    &:hover {
+      background-color: var(--primary-100);
+    }
+
+    .fulltext-icon {
+      font-size: 1.5rem;
+      color: var(--primary-color);
+    }
+
+    .fulltext-search-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      .fulltext-title {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+
+      .fulltext-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-secondary-color);
+      }
+    }
   }
 
   ::ng-deep .p-divider {

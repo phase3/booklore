@@ -45,3 +45,5 @@ local/
 booklore-ui/test-results/
 booklore-api/src/main/resources/application-local.yaml
 /shared/
+
+dev-data/

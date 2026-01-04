@@ -5,9 +5,11 @@ import {ProgressBar} from 'primeng/progressbar';
 import {MessageService} from 'primeng/api';
 import {Select} from 'primeng/select';
 import {FormsModule} from '@angular/forms';
-import {TaskInfo, MetadataReplaceMode, TaskHistory, TASK_TYPE_CONFIG, TaskCreateRequest, TaskCronConfigRequest, TaskProgressPayload, TaskService, TaskStatus, TaskType, LibraryRescanOptions} from './task.service';
+import {TaskInfo, MetadataReplaceMode, TaskHistory, TASK_TYPE_CONFIG, TaskCreateRequest, TaskCronConfigRequest, TaskProgressPayload, TaskService, TaskStatus, TaskType, LibraryRescanOptions, LibraryIndexOptions} from './task.service';
 import {MetadataRefreshRequest} from '../../metadata/model/request/metadata-refresh-request.model';
 import {finalize, forkJoin, Subscription} from 'rxjs';
+import {LibraryService} from '../../book/service/library.service';
+import {Library} from '../../book/model/library.model';
 import {ExternalDocLinkComponent} from '../../../shared/components/external-doc-link/external-doc-link.component';
 import {ToggleSwitch} from 'primeng/toggleswitch';
 import {Badge} from 'primeng/badge';
@@ -34,6 +36,7 @@ export class TaskManagementComponent implements OnInit, OnDestroy {
   // Services
   private messageService = inject(MessageService);
   private taskService = inject(TaskService);
+  private libraryService = inject(LibraryService);
 
   // State
   taskInfos: TaskInfo[] = [];
@@ -41,6 +44,10 @@ export class TaskManagementComponent implements OnInit, OnDestroy {
   loading = false;
   executingTasks = new Set<string>();
   private subscription?: Subscription;
+
+  // Libraries for INDEX_LIBRARY task
+  libraries: Library[] = [];
+  selectedLibraryIdForIndex: number | null = null;
 
   // Metadata Replace Options
   metadataReplaceOptions = [
@@ -71,7 +78,24 @@ export class TaskManagementComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadTasks();
+    this.loadLibraries();
     this.subscribeToTaskProgress();
+  }
+
+  private loadLibraries(): void {
+    this.libraryService.libraryState$.subscribe({
+      next: (state) => {
+        if (state.loaded && state.libraries) {
+          this.libraries = state.libraries;
+          if (this.libraries.length > 0 && !this.selectedLibraryIdForIndex) {
+            this.selectedLibraryIdForIndex = this.libraries[0].id ?? null;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading libraries:', error);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -164,18 +188,26 @@ export class TaskManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    let options = null;
+    let options: LibraryRescanOptions | LibraryIndexOptions | null = null;
 
     if (type === TaskType.REFRESH_LIBRARY_METADATA) {
       options = {
         metadataReplaceMode: this.selectedMetadataReplaceMode
+      };
+    } else if (type === TaskType.INDEX_LIBRARY) {
+      if (!this.selectedLibraryIdForIndex) {
+        this.showMessage('warn', 'No Library Selected', 'Please select a library to index.');
+        return;
+      }
+      options = {
+        libraryId: this.selectedLibraryIdForIndex
       };
     }
 
     this.runTaskWithOptions(type, options);
   }
 
-  private runTaskWithOptions(type: string, options: LibraryRescanOptions | MetadataRefreshRequest | null): void {
+  private runTaskWithOptions(type: string, options: LibraryRescanOptions | MetadataRefreshRequest | LibraryIndexOptions | null): void {
     const request: TaskCreateRequest = {
       taskType: type as TaskType,
       options: options
@@ -454,7 +486,8 @@ export class TaskManagementComponent implements OnInit, OnDestroy {
       [TaskType.UPDATE_BOOK_RECOMMENDATIONS]: 'pi-sparkles',
       [TaskType.CLEANUP_DELETED_BOOKS]: 'pi-trash',
       [TaskType.SYNC_LIBRARY_FILES]: 'pi-sync',
-      [TaskType.CLEANUP_TEMP_METADATA]: 'pi-file'
+      [TaskType.CLEANUP_TEMP_METADATA]: 'pi-file',
+      [TaskType.INDEX_LIBRARY]: 'pi-search'
     };
     return icons[taskType] || 'pi-cog';
   }
