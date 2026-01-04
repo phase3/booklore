@@ -24,6 +24,7 @@ import {
   LibraryIndexStatus
 } from '../model/fulltext-search.model';
 import {UrlHelperService} from '../../../shared/service/url-helper.service';
+import {BookService} from '../../book/service/book.service';
 
 @Component({
   selector: 'app-fulltext-search',
@@ -52,6 +53,7 @@ export class FulltextSearchComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private searchService = inject(FulltextSearchService);
+  private bookService = inject(BookService);
   protected urlHelper = inject(UrlHelperService);
 
   searchQuery = '';
@@ -234,31 +236,68 @@ export class FulltextSearchComponent implements OnInit {
   }
 
   /**
-   * Navigate to a book, optionally to a specific chapter.
+   * Navigate to a book's details page.
    */
-  navigateToBook(bookId: number, chapterHref?: string) {
-    if (chapterHref) {
-      // Navigate to book reader with chapter parameter
-      this.router.navigate(['/book', bookId, 'read'], {
-        queryParams: { chapter: chapterHref }
-      });
-    } else {
-      // Navigate to book details
+  navigateToBook(bookId: number) {
+    this.router.navigate(['/book', bookId]);
+  }
+
+  /**
+   * Navigate to a specific chapter in the book reader.
+   * Fetches the book to determine the correct reader type (PDF/EPUB).
+   */
+  navigateToChapter(bookId: number, chapter: ChapterSearchResult) {
+    if (!chapter.chapterHref) {
       this.router.navigate(['/book', bookId]);
+      return;
+    }
+
+    // First check if book is in state
+    let book = this.bookService.getBookByIdFromState(bookId);
+    if (book) {
+      this.openBookReader(book.id, book.bookType, chapter.chapterHref);
+    } else {
+      // Fetch book from API to get its type
+      this.bookService.getBookByIdFromAPI(bookId, false).subscribe({
+        next: (fetchedBook) => {
+          this.openBookReader(fetchedBook.id, fetchedBook.bookType, chapter.chapterHref);
+        },
+        error: () => {
+          // Fallback to book details page if fetch fails
+          this.router.navigate(['/book', bookId]);
+        }
+      });
     }
   }
 
   /**
-   * Navigate to a specific chapter in the book.
+   * Opens the appropriate reader based on book type.
    */
-  navigateToChapter(bookId: number, chapter: ChapterSearchResult) {
-    if (chapter.chapterHref) {
-      this.router.navigate(['/book', bookId, 'read'], {
-        queryParams: { chapter: chapter.chapterHref }
-      });
-    } else {
-      this.router.navigate(['/book', bookId]);
+  private openBookReader(bookId: number, bookType: string, chapterHref?: string) {
+    let readerPath: string;
+    
+    switch (bookType) {
+      case 'PDF':
+        readerPath = 'pdf-reader';
+        break;
+      case 'EPUB':
+        readerPath = 'epub-reader';
+        break;
+      case 'CBX':
+        readerPath = 'cbx-reader';
+        break;
+      default:
+        // Unknown type, go to book details
+        this.router.navigate(['/book', bookId]);
+        return;
     }
+
+    const queryParams: any = {};
+    if (chapterHref) {
+      queryParams['chapter'] = chapterHref;
+    }
+
+    this.router.navigate([`/${readerPath}/book/${bookId}`], { queryParams });
   }
 
   getLibraryName(libraryId: number): string {
