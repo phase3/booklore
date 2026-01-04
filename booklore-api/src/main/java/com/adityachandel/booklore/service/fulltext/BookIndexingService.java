@@ -5,8 +5,11 @@ import com.adityachandel.booklore.model.dto.ChapterContent;
 import com.adityachandel.booklore.model.entity.BookEntity;
 import com.adityachandel.booklore.model.entity.LibraryIndexStatusEntity;
 import com.adityachandel.booklore.model.enums.IndexStatus;
+import com.adityachandel.booklore.model.websocket.IndexChangedNotification;
+import com.adityachandel.booklore.model.websocket.Topic;
 import com.adityachandel.booklore.repository.BookRepository;
 import com.adityachandel.booklore.repository.LibraryIndexStatusRepository;
+import com.adityachandel.booklore.service.NotificationService;
 import com.adityachandel.booklore.service.fulltext.extractor.TextExtractorFactory;
 import com.adityachandel.booklore.util.FileUtils;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,7 @@ public class BookIndexingService {
     private final LibraryIndexStatusRepository indexStatusRepository;
     private final TextExtractorFactory textExtractorFactory;
     private final BookRepository bookRepository;
+    private final NotificationService notificationService;
 
     /**
      * Checks if the library has an active (COMPLETE) index.
@@ -142,9 +146,10 @@ public class BookIndexingService {
                 }
             }
 
-            // Update the index status count if successfully indexed
+            // Update the index status count and notify if successfully indexed
             if (indexed) {
                 incrementIndexedBookCount(libraryId);
+                notifyIndexChanged(libraryId, book.getId(), IndexChangedNotification.ChangeType.BOOK_ADDED);
             }
 
             return indexed;
@@ -175,6 +180,7 @@ public class BookIndexingService {
 
             if (removed) {
                 decrementIndexedBookCount(libraryId);
+                notifyIndexChanged(libraryId, bookId, IndexChangedNotification.ChangeType.BOOK_REMOVED);
             }
 
             return removed;
@@ -227,6 +233,31 @@ public class BookIndexingService {
             indexStatusRepository.save(status);
             log.debug("Decremented index count for library {} to {}", libraryId, newIndexedCount);
         }
+    }
+
+    /**
+     * Sends a notification that the search index has changed.
+     * This allows the frontend to clear/refresh search results.
+     */
+    private void notifyIndexChanged(Long libraryId, Long bookId, IndexChangedNotification.ChangeType changeType) {
+        try {
+            IndexChangedNotification notification = IndexChangedNotification.builder()
+                    .libraryId(libraryId)
+                    .bookId(bookId)
+                    .changeType(changeType)
+                    .build();
+            notificationService.sendMessage(Topic.INDEX_CHANGED, notification);
+        } catch (Exception e) {
+            log.warn("Failed to send index changed notification: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Sends a notification that a library has been reindexed.
+     * This is called after a full library re-index completes.
+     */
+    public void notifyLibraryReindexed(Long libraryId) {
+        notifyIndexChanged(libraryId, null, IndexChangedNotification.ChangeType.LIBRARY_REINDEXED);
     }
 }
 

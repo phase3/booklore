@@ -115,6 +115,14 @@
         </div>
       </div>
 
+      <!-- Index changed warning -->
+      @if (indexStale) {
+        <p-message severity="info" styleClass="mb-4 w-full">
+          <span class="font-medium">The search index has been updated.</span>
+          <span class="ml-2">Search again to see the latest results.</span>
+        </p-message>
+      }
+
       <!-- Results section -->
       <div class="search-results">
         @if (loading) {

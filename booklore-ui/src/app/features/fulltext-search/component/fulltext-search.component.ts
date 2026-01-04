@@ -1,7 +1,7 @@
-import {Component, inject, OnInit} from '@angular/core';
+import {Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {FormsModule} from '@angular/forms';
-import {debounceTime, distinctUntilChanged, Subject, switchMap, tap} from 'rxjs';
+import {debounceTime, Subject, Subscription, switchMap, tap} from 'rxjs';
 
 import {InputTextModule} from 'primeng/inputtext';
 import {Button} from 'primeng/button';
@@ -25,6 +25,7 @@ import {
 } from '../model/fulltext-search.model';
 import {UrlHelperService} from '../../../shared/service/url-helper.service';
 import {BookService} from '../../book/service/book.service';
+import {RxStompService} from '../../../shared/websocket/rx-stomp.service';
 
 @Component({
   selector: 'app-fulltext-search',
@@ -49,11 +50,12 @@ import {BookService} from '../../book/service/book.service';
     Tooltip
   ]
 })
-export class FulltextSearchComponent implements OnInit {
+export class FulltextSearchComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private searchService = inject(FulltextSearchService);
   private bookService = inject(BookService);
+  private rxStompService = inject(RxStompService);
   protected urlHelper = inject(UrlHelperService);
 
   searchQuery = '';
@@ -65,12 +67,14 @@ export class FulltextSearchComponent implements OnInit {
   loading = false;
   initialLoading = true;
   showSearchTips = false;
+  indexStale = false;  // Flag to indicate search results may be stale
   
   // Pagination
   page = 0;
   pageSize = 20;
   
   private searchTrigger$ = new Subject<{query: string, libraryIds: number[], page: number, pageSize: number}>();
+  private subscriptions: Subscription[] = [];
 
   ngOnInit() {
     // Load indexed libraries
@@ -84,52 +88,80 @@ export class FulltextSearchComponent implements OnInit {
       }
     });
 
-    // Set up search trigger with debounce
-    this.searchTrigger$.pipe(
-      debounceTime(300),
-      distinctUntilChanged((prev, curr) => 
-        prev.query === curr.query && 
-        prev.page === curr.page && 
-        prev.pageSize === curr.pageSize &&
-        JSON.stringify(prev.libraryIds) === JSON.stringify(curr.libraryIds)
-      ),
-      tap(() => this.loading = true),
-      switchMap((params) => this.searchService.search(
-        params.query,
-        params.libraryIds.length > 0 ? params.libraryIds : undefined,
-        params.page,
-        params.pageSize
-      ))
-    ).subscribe({
-      next: (response) => {
-        this.searchResponse = response;
-        this.groupedResults = this.groupResultsByBook(response.results);
-        this.loading = false;
-      },
-      error: () => {
-        this.loading = false;
-        this.searchResponse = null;
-        this.groupedResults = [];
-      }
-    });
+    // Set up search trigger with debounce - IMPORTANT: track this subscription
+    this.subscriptions.push(
+      this.searchTrigger$.pipe(
+        debounceTime(300),
+        tap(() => this.loading = true),
+        switchMap((params) => this.searchService.search(
+          params.query,
+          params.libraryIds.length > 0 ? params.libraryIds : undefined,
+          params.page,
+          params.pageSize
+        ))
+      ).subscribe({
+        next: (response) => {
+          this.searchResponse = response;
+          this.groupedResults = this.groupResultsByBook(response.results);
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
+          this.searchResponse = null;
+          this.groupedResults = [];
+        }
+      })
+    );
 
     // Handle initial query from route
-    this.route.queryParams.subscribe(params => {
-      if (params['q']) {
-        this.searchQuery = params['q'];
-        if (params['libraryIds']) {
-          this.selectedLibraryIds = params['libraryIds'].split(',').map(Number);
+    this.subscriptions.push(
+      this.route.queryParams.subscribe(params => {
+        if (params['q']) {
+          this.searchQuery = params['q'];
+          if (params['libraryIds']) {
+            this.selectedLibraryIds = params['libraryIds'].split(',').map(Number);
+          }
+          if (params['page']) {
+            this.page = parseInt(params['page'], 10);
+          }
+          this.triggerSearch();
         }
-        if (params['page']) {
-          this.page = parseInt(params['page'], 10);
-        }
-        this.triggerSearch();
-      }
-    });
+      })
+    );
+
+    // Subscribe to index change notifications (with error handling)
+    try {
+      this.subscriptions.push(
+        this.rxStompService.watch('/user/queue/index-changed').subscribe({
+          next: () => {
+            // Clear current results and mark as stale when index changes
+            this.searchResponse = null;
+            this.groupedResults = [];
+            this.indexStale = true;
+            // Refresh indexed libraries list
+            this.searchService.getIndexedLibraries().subscribe({
+              next: (libraries) => {
+                this.indexedLibraries = libraries;
+              }
+            });
+          },
+          error: (err) => {
+            console.warn('WebSocket index-changed subscription error:', err);
+          }
+        })
+      );
+    } catch (e) {
+      console.warn('Failed to subscribe to index-changed notifications:', e);
+    }
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   onSearchSubmit() {
     this.page = 0;
+    this.indexStale = false;  // Clear stale flag on new search
     this.updateUrlAndSearch();
   }
 
@@ -309,6 +341,7 @@ export class FulltextSearchComponent implements OnInit {
     this.searchQuery = '';
     this.searchResponse = null;
     this.groupedResults = [];
+    this.indexStale = false;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {q: null, libraryIds: null, page: null},

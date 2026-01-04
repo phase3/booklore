@@ -15,7 +15,8 @@ public enum Topic {
     BOOK_METADATA_BATCH_PROGRESS("/queue/book-metadata-batch-progress"),
     BOOKDROP_FILE("/queue/bookdrop-file"),
     LOG("/queue/log"),
-    TASK_PROGRESS("/queue/task-progress");
+    TASK_PROGRESS("/queue/task-progress"),
+    INDEX_CHANGED("/queue/index-changed");
 
     private final String path;
 

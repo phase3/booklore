@@ -17,6 +17,7 @@ import com.adityachandel.booklore.repository.BookRepository;
 import com.adityachandel.booklore.repository.LibraryIndexStatusRepository;
 import com.adityachandel.booklore.repository.LibraryRepository;
 import com.adityachandel.booklore.service.NotificationService;
+import com.adityachandel.booklore.service.fulltext.BookIndexingService;
 import com.adityachandel.booklore.service.fulltext.LuceneIndexService;
 import com.adityachandel.booklore.service.fulltext.extractor.TextExtractorFactory;
 import com.adityachandel.booklore.task.TaskStatus;
@@ -48,6 +49,7 @@ public class LibraryIndexTask implements Task {
     private final TextExtractorFactory textExtractorFactory;
     private final LuceneIndexService luceneIndexService;
     private final NotificationService notificationService;
+    private final BookIndexingService bookIndexingService;
 
     private static final long MIN_NOTIFICATION_INTERVAL_MS = 500;
 
@@ -220,6 +222,9 @@ public class LibraryIndexTask implements Task {
             
             log.info("INDEX_LIBRARY: {}", completionMessage);
             sendProgress(taskId, 100, completionMessage, TaskStatus.COMPLETED, lastNotificationTime, true);
+
+            // Notify frontend that the index has changed
+            bookIndexingService.notifyLibraryReindexed(libraryId);
 
             return responseBuilder.status(TaskStatus.COMPLETED).build();
 
