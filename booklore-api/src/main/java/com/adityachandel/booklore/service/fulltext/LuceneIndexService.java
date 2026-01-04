@@ -198,6 +198,27 @@ public class LuceneIndexService {
     }
 
     /**
+     * Removes a book from the index.
+     * Deletes all documents associated with the given book ID (including all chapters).
+     *
+     * @param libraryId the library ID
+     * @param bookId the book ID to remove
+     * @return true if the book was removed, false if the index doesn't exist
+     */
+    public boolean removeBookFromIndex(long libraryId, long bookId) throws IOException {
+        if (!indexExists(libraryId)) {
+            log.debug("Index does not exist for library {} - skipping removal of book {}", libraryId, bookId);
+            return false;
+        }
+        
+        IndexWriter writer = getIndexWriter(libraryId);
+        writer.deleteDocuments(new Term(FIELD_BOOK_ID, String.valueOf(bookId)));
+        writer.commit();
+        log.info("Removed book {} from library {} index", bookId, libraryId);
+        return true;
+    }
+
+    /**
      * Commits pending changes to the index.
      */
     public void commit(long libraryId) throws IOException {

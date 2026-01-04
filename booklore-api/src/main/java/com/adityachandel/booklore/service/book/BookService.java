@@ -14,6 +14,7 @@ import com.adityachandel.booklore.model.entity.UserBookProgressEntity;
 import com.adityachandel.booklore.model.enums.BookFileType;
 import com.adityachandel.booklore.model.enums.ReadStatus;
 import com.adityachandel.booklore.repository.*;
+import com.adityachandel.booklore.service.fulltext.BookIndexingService;
 import com.adityachandel.booklore.service.monitoring.MonitoringRegistrationService;
 import com.adityachandel.booklore.service.user.UserProgressService;
 import com.adityachandel.booklore.util.FileService;
@@ -59,6 +60,7 @@ public class BookService {
     private final BookDownloadService bookDownloadService;
     private final MonitoringRegistrationService monitoringRegistrationService;
     private final BookUpdateService bookUpdateService;
+    private final BookIndexingService bookIndexingService;
 
 
     private void setBookProgress(Book book, UserBookProgressEntity progress) {
@@ -322,6 +324,13 @@ public class BookService {
         List<BookEntity> books = bookQueryService.findAllWithMetadataByIds(ids);
         List<Long> failedFileDeletions = new ArrayList<>();
         for (BookEntity book : books) {
+            // Remove from full-text search index before deletion
+            try {
+                bookIndexingService.removeBookFromIndex(book.getLibrary().getId(), book.getId());
+            } catch (Exception e) {
+                log.warn("Failed to remove book {} from search index: {}", book.getId(), e.getMessage());
+            }
+
             Path fullFilePath = book.getFullFilePath();
             try {
                 if (Files.exists(fullFilePath)) {

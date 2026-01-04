@@ -17,6 +17,7 @@ import com.adityachandel.booklore.service.event.AdminEventBroadcaster;
 import com.adityachandel.booklore.service.event.BookEventBroadcaster;
 import com.adityachandel.booklore.service.fileprocessor.BookFileProcessor;
 import com.adityachandel.booklore.service.fileprocessor.BookFileProcessorRegistry;
+import com.adityachandel.booklore.service.fulltext.BookIndexingService;
 import com.adityachandel.booklore.util.FileUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class FolderAsBookFileProcessor implements LibraryFileProcessor {
     private final BookEventBroadcaster bookEventBroadcaster;
     private final AdminEventBroadcaster adminEventBroadcaster;
     private final BookFileProcessorRegistry bookFileProcessorRegistry;
+    private final BookIndexingService bookIndexingService;
 
     @Override
     public LibraryScanMode getScanMode() {
@@ -169,6 +171,7 @@ public class FolderAsBookFileProcessor implements LibraryFileProcessor {
 
             if (result.getBook() != null) {
                 bookEventBroadcaster.broadcastBookAddEvent(result.getBook());
+                bookIndexingService.indexSingleBook(result.getBook());
 
                 BookEntity bookEntity = bookRepository.getReferenceById(result.getBook().getId());
                 if (bookEntity.getFullFilePath().equals(bookFile.getFullPath())) {

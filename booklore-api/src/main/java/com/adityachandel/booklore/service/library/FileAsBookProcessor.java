@@ -8,6 +8,7 @@ import com.adityachandel.booklore.model.enums.LibraryScanMode;
 import com.adityachandel.booklore.service.event.BookEventBroadcaster;
 import com.adityachandel.booklore.service.fileprocessor.BookFileProcessor;
 import com.adityachandel.booklore.service.fileprocessor.BookFileProcessorRegistry;
+import com.adityachandel.booklore.service.fulltext.BookIndexingService;
 import com.adityachandel.booklore.service.kobo.KoboAutoShelfService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class FileAsBookProcessor implements LibraryFileProcessor {
     private final BookEventBroadcaster bookEventBroadcaster;
     private final BookFileProcessorRegistry processorRegistry;
     private final KoboAutoShelfService koboAutoShelfService;
+    private final BookIndexingService bookIndexingService;
 
     @Override
     public LibraryScanMode getScanMode() {
@@ -46,6 +48,7 @@ public class FileAsBookProcessor implements LibraryFileProcessor {
             if (result != null) {
                 bookEventBroadcaster.broadcastBookAddEvent(result.getBook());
                 koboAutoShelfService.autoAddBookToKoboShelves(result.getBook().getId());
+                bookIndexingService.indexSingleBook(result.getBook());
             }
         } catch (Exception e) {
             log.error("Failed to process file '{}': {}", libraryFile.getFileName(), e.getMessage());

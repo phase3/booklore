@@ -9,6 +9,7 @@ import com.adityachandel.booklore.model.websocket.Topic;
 import com.adityachandel.booklore.repository.BookAdditionalFileRepository;
 import com.adityachandel.booklore.repository.BookRepository;
 import com.adityachandel.booklore.service.NotificationService;
+import com.adityachandel.booklore.service.fulltext.BookIndexingService;
 import com.adityachandel.booklore.util.FileService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -33,6 +34,7 @@ public class BookDeletionService {
     private final BookAdditionalFileRepository bookAdditionalFileRepository;
     private final FileService fileService;
     private final NotificationService notificationService;
+    private final BookIndexingService bookIndexingService;
 
     @PersistenceContext
     private final EntityManager entityManager;
@@ -78,6 +80,13 @@ public class BookDeletionService {
     public void deleteRemovedBooks(List<Long> bookIds) {
         List<BookEntity> books = bookRepository.findAllById(bookIds);
         for (BookEntity book : books) {
+            // Remove from full-text search index before deletion
+            try {
+                bookIndexingService.removeBookFromIndex(book.getLibrary().getId(), book.getId());
+            } catch (Exception e) {
+                log.warn("Failed to remove book {} from search index: {}", book.getId(), e.getMessage());
+            }
+
             try {
                 deleteDirectoryRecursively(Path.of(fileService.getImagesFolder(book.getId())));
                 Path backupDir = Path.of(fileService.getBookMetadataBackupPath(book.getId()));
