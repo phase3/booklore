@@ -12,7 +12,8 @@
 - **Frontend**: Angular 20, TypeScript, PrimeNG 19
 - **Backend**: Java 21, Spring Boot 3.5
 - **Authentication**: Local JWT + optional OIDC (e.g., Authentik)
-- **Database**: MariaDB
+- **Database**: SQLite (embedded)
+- **Full-Text Search**: Apache Lucene
 - **Deployment**: Docker-compatible, reverse proxy-ready
 
 ---
@@ -78,14 +79,18 @@ docker compose -f dev.docker-compose.yml up
 **What you get:**
 - ✅ Frontend dev server at `http://localhost:4200/`
 - ✅ Backend API at `http://localhost:8080/`
-- ✅ MariaDB at `localhost:3366`
 - ✅ Remote Java debugging at `localhost:5005`
+- ✅ SQLite database (embedded, stored in `./data`)
 
 **Note:** All ports are configurable via environment variables in `dev.docker-compose.yml`:
 - `FRONTEND_PORT` (default: 4200)
 - `BACKEND_PORT` (default: 8080)
-- `DB_PORT` (default: 3366)
 - `REMOTE_DEBUG_PORT` (default: 5005)
+
+**Data directories are also configurable:**
+- `DATA_DIR` (default: ./data)
+- `BOOKS_DIR` (default: ./books)
+- `BOOKDROP_DIR` (default: ./bookdrop)
 
 **Stopping the stack:**
 ```bash
@@ -103,7 +108,6 @@ For more control over your development environment, you can run each component s
 Ensure you have the following installed:
 - **Java 21+** ([Download](https://adoptium.net/))
 - **Node.js 18+** and **npm** ([Download](https://nodejs.org/))
-- **MariaDB 10.6+** ([Download](https://mariadb.org/download/))
 - **Git** ([Download](https://git-scm.com/))
 
 #### Frontend Setup
@@ -132,24 +136,50 @@ The frontend will be available at `http://localhost:4200/` with hot-reload enabl
 
 #### Backend Setup
 
-##### Step 1: Configure Application Properties
+##### Step 1: Use the run.sh Script (Recommended)
+
+The easiest way to run the backend locally is using the provided `run.sh` script:
+
+```bash
+# Run both backend and frontend
+./run.sh
+
+# Run only the backend
+./run.sh backend
+
+# Run only the frontend
+./run.sh frontend
+
+# Show help
+./run.sh help
+```
+
+The script automatically:
+- Sets up development directories (`dev-data`, `dev-books`, `dev-bookdrop`)
+- Configures SQLite database
+- Starts Spring Boot with the correct environment
+
+**Customizing paths:**
+```bash
+# Use custom data directory
+DATA_DIR=/path/to/data ./run.sh
+```
+
+##### Step 2: Manual Backend Setup (Alternative)
+
+If you prefer manual setup, configure the application:
 
 Create a development configuration file at `booklore-api/src/main/resources/application-dev.yml`:
 
 ```yaml
 app:
-  # Path where books and comics are stored
-  path-book: '/Users/yourname/booklore-data/books'
-  
-  # Path for thumbnails, metadata cache, and other config files
+  # Path where SQLite database, metadata cache, and config files are stored
   path-config: '/Users/yourname/booklore-data/config'
 
 spring:
   datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://localhost:3306/booklore?createDatabaseIfNotExist=true
-    username: root
-    password: your_secure_password
+    url: jdbc:sqlite:${app.path-config}/booklore.db?journal_mode=WAL&busy_timeout=60000&transaction_mode=IMMEDIATE
+    driver-class-name: org.sqlite.JDBC
 ```
 
 **Important:**
@@ -158,24 +188,8 @@ spring:
 - Ensure proper read/write permissions
 
 **Example paths:**
-- **macOS/Linux**: `/Users/yourname/booklore-data/books`
-- **Windows**: `C:\Users\yourname\booklore-data\books`
-
-##### Step 2: Set Up the Database
-
-Ensure MariaDB is running and create the database:
-
-```bash
-# Connect to MariaDB
-mysql -u root -p
-
-# Create database and user (optional)
-CREATE DATABASE IF NOT EXISTS booklore;
-CREATE USER 'booklore_user'@'localhost' IDENTIFIED BY 'your_secure_password';
-GRANT ALL PRIVILEGES ON booklore.* TO 'booklore_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
+- **macOS/Linux**: `/Users/yourname/booklore-data/config`
+- **Windows**: `C:\Users\yourname\booklore-data\config`
 
 ##### Step 3: Run the Backend
 

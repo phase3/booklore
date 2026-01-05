@@ -7,17 +7,16 @@ import com.adityachandel.booklore.model.enums.BookFileType;
 import com.adityachandel.booklore.model.enums.LibraryScanMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MariaDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -27,31 +26,24 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 */
 /**
- * Integration test for BookAdditionalFileRepository using TestContainers with MariaDB.
+ * Integration test for BookAdditionalFileRepository using SQLite.
  * This provides real database testing with the same database engine used in production.
  *//*
 
 @DataJpaTest
-@Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class BookAdditionalFileRepositoryTest {
 
-    @Container
-    static MariaDBContainer<?> mariaDB = new MariaDBContainer<>("mariadb:11.4.5")
-            .withDatabaseName("booklore_test")
-            .withUsername("test")
-            .withPassword("test");
+    @TempDir
+    static Path tempDir;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mariaDB::getJdbcUrl);
-        registry.add("spring.datasource.username", mariaDB::getUsername);
-        registry.add("spring.datasource.password", mariaDB::getPassword);
-        registry.add("spring.datasource.driver-class-name", mariaDB::getDriverClassName);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.flyway.clean-disabled", () -> "false");
-        registry.add("spring.flyway.baseline-on-migrate", () -> "true");
+        String dbPath = tempDir.resolve("test-booklore.db").toString();
+        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + dbPath + "?journal_mode=WAL");
+        registry.add("spring.datasource.driver-class-name", () -> "org.sqlite.JDBC");
+        registry.add("spring.jpa.database-platform", () -> "org.hibernate.community.dialect.SQLiteDialect");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired

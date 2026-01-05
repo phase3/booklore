@@ -1,19 +1,27 @@
 # Stage 1: Build the Angular app
-FROM node:22-alpine AS angular-build
+# Build on native platform (ARM) to avoid QEMU emulation issues with esbuild
+# The output is just static files, so platform doesn't matter for the artifacts
+FROM --platform=$BUILDPLATFORM node:20-bookworm AS angular-build
 
 WORKDIR /angular-app
 
+# Copy package files
 COPY ./booklore-ui/package.json ./booklore-ui/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm config set registry http://registry.npmjs.org/ \
-    && npm ci --force
+
+# Install dependencies
+RUN npm ci --force
 
 COPY ./booklore-ui /angular-app/
 
-RUN npm run build --configuration=production
+# Increase Node.js memory limit for Angular build
+ENV NODE_OPTIONS="--max-old-space-size=8192"
+ENV NODE_ENV=production
+
+RUN npm run build -- --configuration=production
 
 # Stage 2: Build the Spring Boot app with Gradle
-FROM gradle:8.14.3-jdk21-alpine AS springboot-build
+# Build on native platform - JAR files are platform-independent
+FROM --platform=$BUILDPLATFORM gradle:8.14.3-jdk21-alpine AS springboot-build
 
 WORKDIR /springboot-app
 
@@ -53,12 +61,20 @@ LABEL org.opencontainers.image.title="BookLore" \
 
 RUN apk update && apk add nginx gettext su-exec
 
+# Create default directories so the image can run without volume mappings
+RUN mkdir -p /app/data /books /bookdrop
+
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY --from=angular-build /angular-app/dist/booklore/browser /usr/share/nginx/html
 COPY --from=springboot-build /springboot-app/build/libs/booklore-api-0.0.1-SNAPSHOT.jar /app/app.jar
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 8080 80
+# Declare volumes for persistence (optional - image works without mapping these)
+VOLUME ["/app/data", "/books", "/bookdrop"]
+
+# Default port is 6060 (configurable via BOOKLORE_PORT env var)
+# Internal Spring Boot runs on 8080, proxied by nginx
+EXPOSE 6060
 
 CMD ["/start.sh"]

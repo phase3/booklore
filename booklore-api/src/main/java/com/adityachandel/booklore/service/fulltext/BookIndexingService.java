@@ -50,7 +50,7 @@ public class BookIndexingService {
     }
 
     /**
-     * Indexes a single book by its DTO if the library has an active index.
+     * Indexes a single book by its DTO.
      * This is a convenience method that fetches the entity and delegates to indexSingleBook(BookEntity).
      *
      * @param book the book DTO
@@ -58,12 +58,6 @@ public class BookIndexingService {
      */
     public boolean indexSingleBook(Book book) {
         if (book == null || book.getId() == null) {
-            return false;
-        }
-
-        // Quick check if library is indexed before fetching the entity
-        if (!isLibraryIndexed(book.getLibraryId())) {
-            log.debug("Library {} is not indexed - skipping indexing for book {}", book.getLibraryId(), book.getId());
             return false;
         }
 
@@ -77,11 +71,12 @@ public class BookIndexingService {
     }
 
     /**
-     * Indexes a single book if the library has an active index.
+     * Indexes a single book.
      * This is called when a new book is added to the library.
+     * The library index status will be created if it doesn't exist.
      *
      * @param book the book entity to index
-     * @return true if the book was indexed, false if skipped (library not indexed or unsupported format)
+     * @return true if the book was indexed, false if skipped (unsupported format or error)
      */
     public boolean indexSingleBook(BookEntity book) {
         if (book == null) {
@@ -89,12 +84,6 @@ public class BookIndexingService {
         }
 
         long libraryId = book.getLibrary().getId();
-
-        // Check if the library has an active index
-        if (!isLibraryIndexed(libraryId)) {
-            log.debug("Library {} is not indexed - skipping indexing for book {}", libraryId, book.getId());
-            return false;
-        }
 
         // Check if the book type supports text extraction
         if (!textExtractorFactory.isSupported(book.getBookType())) {
@@ -205,17 +194,27 @@ public class BookIndexingService {
 
     /**
      * Increments the indexed book count for a library.
+     * Creates the library index status if it doesn't exist.
      */
     @Transactional
     public void incrementIndexedBookCount(long libraryId) {
-        Optional<LibraryIndexStatusEntity> statusOpt = indexStatusRepository.findById(libraryId);
-        if (statusOpt.isPresent()) {
-            LibraryIndexStatusEntity status = statusOpt.get();
-            status.setIndexedBookCount(status.getIndexedBookCount() + 1);
-            status.setTotalBookCount(status.getTotalBookCount() + 1);
-            indexStatusRepository.save(status);
-            log.debug("Incremented index count for library {} to {}", libraryId, status.getIndexedBookCount());
-        }
+        LibraryIndexStatusEntity status = indexStatusRepository.findById(libraryId)
+                .orElseGet(() -> {
+                    // Create a new index status for this library
+                    LibraryIndexStatusEntity newStatus = LibraryIndexStatusEntity.builder()
+                            .libraryId(libraryId)
+                            .status(IndexStatus.COMPLETE)
+                            .indexedBookCount(0)
+                            .totalBookCount(0)
+                            .build();
+                    log.info("Created new index status for library {}", libraryId);
+                    return newStatus;
+                });
+        
+        status.setIndexedBookCount(status.getIndexedBookCount() + 1);
+        status.setTotalBookCount(status.getTotalBookCount() + 1);
+        indexStatusRepository.save(status);
+        log.debug("Incremented index count for library {} to {}", libraryId, status.getIndexedBookCount());
     }
 
     /**

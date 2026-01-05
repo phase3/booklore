@@ -1,3 +1,16 @@
+# BookLore Docker Compose Example
+# ================================
+# The image can run without any volume mappings (for testing/demos).
+# For production, mount volumes to persist data across container restarts.
+#
+# Quick start (no persistence):
+#   docker run -p 6060:6060 booklore/booklore:latest
+#
+# Environment variables (customize paths):
+#   DATA_DIR      Path to data directory (default: ./data)
+#   BOOKS_DIR     Path to books directory (default: ./books)
+#   BOOKDROP_DIR  Path to bookdrop directory (default: ./bookdrop)
+
 services:
   booklore:
     # Official Docker Hub image:
@@ -16,10 +29,11 @@ services:
       - "6060:6060" # HostPort:ContainerPort → Keep both numbers the same, and also ensure the container port matches BOOKLORE_PORT, no exceptions. 
       # All three (host port, container port, BOOKLORE_PORT) must be identical for BookLore to function properly.
       # Example: To expose on host port 7070, set BOOKLORE_PORT=7070 and use "7070:7070".
+    # Volumes are optional but recommended for data persistence
     volumes:
-      - ./data:/app/data       # Application data (SQLite database, settings, metadata, cache, etc.). Persist this folder to retain your library state across container restarts.
-      - ./books:/books         # Primary book library folder. Mount your collection here so BookLore can access and organize your books.
-      - ./bookdrop:/bookdrop   # BookDrop folder. Files placed here are automatically detected and prepared for import.
+      - ${DATA_DIR:-./data}:/app/data       # (Recommended) SQLite database, settings, metadata, cache, Lucene indexes
+      - ${BOOKS_DIR:-./books}:/books         # (Recommended) Primary book library folder
+      - ${BOOKDROP_DIR:-./bookdrop}:/bookdrop   # (Optional) BookDrop auto-import folder
     healthcheck:
       test: wget -q -O - http://localhost:6060/api/v1/healthcheck
       interval: 60s

@@ -16,9 +16,9 @@ set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DATA_DIR="${SCRIPT_DIR}/dev-data"
-BOOKS_DIR="${SCRIPT_DIR}/dev-books"
-BOOKDROP_DIR="${SCRIPT_DIR}/dev-bookdrop"
+DATA_DIR="${DATA_DIR:-${SCRIPT_DIR}/dev-data}"
+BOOKS_DIR="${BOOKS_DIR:-${SCRIPT_DIR}/dev-books}"
+BOOKDROP_DIR="${BOOKDROP_DIR:-${SCRIPT_DIR}/dev-bookdrop}"
 
 BACKEND_DIR="${SCRIPT_DIR}/booklore-api"
 FRONTEND_DIR="${SCRIPT_DIR}/booklore-ui"
@@ -115,6 +115,11 @@ print_help() {
     echo "  SQLite DB & Config: ${DATA_DIR}"
     echo "  Books:              ${BOOKS_DIR}"
     echo "  BookDrop:           ${BOOKDROP_DIR}"
+    echo ""
+    echo "Environment variables (to customize paths):"
+    echo "  DATA_DIR       Path to data directory (default: ./dev-data)"
+    echo "  BOOKS_DIR      Path to books directory (default: ./dev-books)"
+    echo "  BOOKDROP_DIR   Path to bookdrop directory (default: ./dev-bookdrop)"
     echo ""
     echo "Prerequisites:"
     echo "  Java 21:   brew install openjdk@21"

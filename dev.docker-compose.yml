@@ -5,6 +5,11 @@
 # Usage:
 #   docker compose -f dev.docker-compose.yml up
 #
+# Environment variables (customize paths):
+#   DATA_DIR      Path to data directory (default: ./data)
+#   BOOKS_DIR     Path to books directory (default: ./books)
+#   BOOKDROP_DIR  Path to bookdrop directory (default: ./bookdrop)
+#
 # Services:
 #   - backend:  Spring Boot API (port 8080, debug port 5005)
 #   - ui:       Angular dev server (port 4200)
@@ -24,9 +29,9 @@ services:
     restart: unless-stopped
     volumes:
       - './booklore-api:/booklore-api'
-      - ./shared/data:/app/data        # SQLite database stored here
-      - ./shared/books:/books
-      - ./shared/bookdrop:/bookdrop
+      - ${DATA_DIR:-./data}:/app/data        # SQLite database stored here
+      - ${BOOKS_DIR:-./books}:/books
+      - ${BOOKDROP_DIR:-./bookdrop}:/bookdrop
 
   ui:
     image: node:22-alpine
