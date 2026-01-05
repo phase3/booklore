@@ -149,18 +149,14 @@ public class AuthenticationService {
 
         BookLoreUserEntity user = storedToken.getUser();
 
-        // Delete the old token (OneToOne constraint requires this before creating new)
-        refreshTokenRepository.delete(storedToken);
-
+        // Update the existing token instead of delete + create to avoid unique constraint race condition
         String newRefreshToken = jwtUtils.generateRefreshToken(user);
-        RefreshTokenEntity newRefreshTokenEntity = RefreshTokenEntity.builder()
-                .user(user)
-                .token(newRefreshToken)
-                .expiryDate(Instant.now().plusMillis(jwtUtils.getRefreshTokenExpirationMs()))
-                .revoked(false)
-                .build();
+        storedToken.setToken(newRefreshToken);
+        storedToken.setExpiryDate(Instant.now().plusMillis(jwtUtils.getRefreshTokenExpirationMs()));
+        storedToken.setRevoked(false);
+        storedToken.setRevocationDate(null);
 
-        refreshTokenRepository.save(newRefreshTokenEntity);
+        refreshTokenRepository.save(storedToken);
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", jwtUtils.generateAccessToken(user),
